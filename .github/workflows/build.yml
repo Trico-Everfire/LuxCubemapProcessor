@@ -1,9 +1,9 @@
 name: Build
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
     # nothing here
 
@@ -14,7 +14,7 @@ jobs:
   build-msvc:
     strategy:
       matrix:
-        build_type: [Debug, Release]
+        build_type: [Release]
     runs-on: windows-latest
     defaults:
       run:
@@ -37,7 +37,7 @@ jobs:
 
       - name: Build
         working-directory: ${{env.BUILD_DIR}}
-        run: cmake --build . --config ${{matrix.build_type}} -t vpktool -- -j%NUMBER_OF_PROCESSORS%
+        run: cmake --build . --config ${{matrix.build_type}} -t LuxCubemapProcessor -- -j%NUMBER_OF_PROCESSORS%
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
@@ -51,7 +51,7 @@ jobs:
   build-linux:
     strategy:
       matrix:
-        build_type: [Debug, Release]
+        build_type: [Release]
         compiler: [gcc, clang]
     runs-on: ubuntu-latest
     steps:
@@ -82,7 +82,7 @@ jobs:
 
       - name: Build
         working-directory: ${{env.BUILD_DIR}}
-        run: cmake --build . --config ${{matrix.build_type}} -t vpktool -- -j$(nproc)
+        run: cmake --build . --config ${{matrix.build_type}} -t LuxCubemapProcessor -- -j$(nproc)
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
