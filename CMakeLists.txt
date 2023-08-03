@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(LuxCubemapProcessor)
 
+set(MZ_LZMA OFF CACHE BOOL "" FORCE)
 set(MZ_ZLIB OFF CACHE BOOL "" FORCE)
 set(MZ_BZIP2 OFF CACHE BOOL "" FORCE)
 set(MZ_PKCRYPT OFF CACHE BOOL "" FORCE)
@@ -22,13 +23,6 @@ set_target_properties(
         RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
 add_subdirectory(libs/minizip-ng)
-target_compile_definitions(minizip PUBLIC MZ_ZLIB=OFF)
-target_compile_definitions(minizip PUBLIC MZ_BZIP2=OFF)
-target_compile_definitions(minizip PUBLIC MZ_PKCRYPT=OFF)
-target_compile_definitions(minizip PUBLIC MZ_WZAES=OFF)
-target_compile_definitions(minizip PUBLIC MZ_OPENSSL=OFF)
-target_compile_definitions(minizip PUBLIC MZ_LIBBSD=OFF)
-target_compile_definitions(minizip PUBLIC MZ_ICONV=OFF)
 include_directories(libs/minizip-ng)
 include_directories(libs/VTFLib/VTFLib)
 
