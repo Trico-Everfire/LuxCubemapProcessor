@@ -1,3 +1,4 @@
+#include <iostream>
 #include <sstream>
 #include "cubemap_bsp.h"
 #include "VTFFile.h"
