@@ -1,0 +1,7 @@
+[submodule "libs/VTFLib"]
+	path = libs/VTFLib
+	url = https://github.com/Trico-Everfire/VTFLib.git
+	branch = feat/floating_point_support
+[submodule "libs/minizip-ng"]
+	path = libs/minizip-ng
+	url = https://github.com/zlib-ng/minizip-ng.git
