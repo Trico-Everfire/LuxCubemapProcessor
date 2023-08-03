@@ -1,7 +1,5 @@
-#include <iostream>
 #include <sstream>
 #include "cubemap_bsp.h"
-#include <bits/stdc++.h>
 #include "VTFFile.h"
 #include "zip_handler.h"
 
