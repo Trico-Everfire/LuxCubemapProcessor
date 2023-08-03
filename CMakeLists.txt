@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.25)
 project(LuxCubemapProcessor)
 
 set(MZ_LZMA OFF CACHE BOOL "" FORCE)
-set(MZ_ZLIB OFF CACHE BOOL "" FORCE)
 set(MZ_BZIP2 OFF CACHE BOOL "" FORCE)
 set(MZ_PKCRYPT OFF CACHE BOOL "" FORCE)
 set(MZ_WZAES OFF CACHE BOOL "" FORCE)

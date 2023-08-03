@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <sstream>
+#include <algorithm>
 #include "cubemap_bsp.h"
 #include "zip_handler.h"
 #include "VTFFile.h"
