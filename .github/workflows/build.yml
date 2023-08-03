@@ -37,7 +37,7 @@ jobs:
 
       - name: Build
         working-directory: ${{env.BUILD_DIR}}
-        run: cmake --build . --config ${{matrix.build_type}} -t vpktool -- -j%NUMBER_OF_PROCESSORS%
+        run: cmake --build . --config ${{matrix.build_type}} -t LuxCubemapProcessor -- -j%NUMBER_OF_PROCESSORS%
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
@@ -82,7 +82,7 @@ jobs:
 
       - name: Build
         working-directory: ${{env.BUILD_DIR}}
-        run: cmake --build . --config ${{matrix.build_type}} -t vpktool -- -j$(nproc)
+        run: cmake --build . --config ${{matrix.build_type}} -t LuxCubemapProcessor -- -j$(nproc)
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
