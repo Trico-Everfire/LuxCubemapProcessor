@@ -1,15 +1,19 @@
 cmake_minimum_required(VERSION 3.25)
 project(LuxCubemapProcessor)
 
+set(MZ_ZLIB OFF)
+set(MZ_BZIP2 OFF)
+set(MZ_PKCRYPT OFF)
+set(MZ_WZAES OFF)
+set(MZ_OPENSSL OFF)
+set(MZ_LIBBSD OFF)
+set(MZ_ICONV OFF)
+
 set(CMAKE_CXX_STANDARD 23)
 
 add_subdirectory(libs/VTFLib)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
-
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
 set_target_properties(
         vtflib PROPERTIES
