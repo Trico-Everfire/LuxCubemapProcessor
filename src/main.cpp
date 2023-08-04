@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
             std::cout << "CRITICAL ERROR: File \"" + fileName + "\" is not a BSP";
             return 1;
         }
-        CCubeMapBSP bsp{"/home/trico/CLionProjects/LuxCubemapProcessor/ep2_outland_05.bsp"};
+        CCubeMapBSP bsp{fileName};
 
         if(!bsp.Available())
         {
