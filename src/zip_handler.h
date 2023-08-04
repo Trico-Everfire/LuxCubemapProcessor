@@ -4,11 +4,6 @@
 #include <vector>
 extern "C" {
 #include "mz_compat.h"
-#include "mz_zip.h"
-#include "mz_strm.h"
-#include "mz_zip_rw.h"
-#include "mz_strm_os.h"
-#include "mz_os.h"
 }
 #include <unordered_map>
 
