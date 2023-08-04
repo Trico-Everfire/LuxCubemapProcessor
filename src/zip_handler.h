@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#undef MZ_EXPORTS
 extern "C" {
 #include "mz_compat.h"
 }
