@@ -82,6 +82,8 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
     if ( !unZipHandler->IsValid() )
         return;
 
+    std::cout << "It's unzipping valid!!!" << std::endl;
+
     CUnZipHandler::Result zipper_ret;
     do
     {
@@ -89,6 +91,8 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         std::string zfilename = unZipHandler->GetFileName(nullptr );
         if ( zfilename.empty() )
             return;
+
+        std::cout << zfilename << std::endl;
 
         std::istringstream fname(zfilename);
         std::string result;
