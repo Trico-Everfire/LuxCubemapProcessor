@@ -2,6 +2,7 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 #include "cubemap_bsp.h"
 #include "zip_handler.h"
 #include "VTFFile.h"
@@ -107,7 +108,10 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         {
             auto vtfFile = VTFLib::CVTFFile();
 
-            vtfFile.Load(buf.data(), buf.size(), false);
+            std::cout << buf.size() << std::endl;
+
+            vtfFile.Load(buf.data(), buf.size(), false)
+
             for(int i = 0; i < 6; i++)
             {
                 vtfFile.ConvertInPlace(IMAGE_FORMAT_RGBA32323232F);
@@ -155,6 +159,8 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         vmt.push_back('}');
         cubeMaps.vmf = vmt;
 
+        std::cout << cubeMaps.vmtName << std::endl;
+
         if(!zipHandler->zipper_add_buf((cubeMaps.path + cubeMaps.vmtName).c_str(),
                                        reinterpret_cast<const unsigned char *>(cubeMaps.vmf.data()), cubeMaps.vmf.size()))
             return;
@@ -179,9 +185,13 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
     delete[] buff;
 
+    std::cout << "before FOpen" << std::endl;
+
     fl = fopen(bspPath.c_str(), "w");
     if(fl == nullptr)
         return;
+
+    std::cout << "After" << std::endl;
 
     fwrite(newBuffer, 1, (size - initialContentLength) + bufSize, fl );
 
