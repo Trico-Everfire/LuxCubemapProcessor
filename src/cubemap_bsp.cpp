@@ -110,7 +110,7 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
             std::cout << buf.size() << std::endl;
 
-            vtfFile.Load(buf.data(), buf.size(), false)
+            vtfFile.Load(buf.data(), buf.size(), false);
 
             for(int i = 0; i < 6; i++)
             {
