@@ -15,6 +15,8 @@ std::string CUnZipHandler::GetFileName(bool *isUTF8) {
         unz_file_info64 finfo;
         int ret;
 
+        std::cout << "File" << std::endl;
+
         if ( zfile == nullptr )
             return {};
 
