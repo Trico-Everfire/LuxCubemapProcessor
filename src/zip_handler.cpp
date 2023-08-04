@@ -2,8 +2,10 @@
 #include <iostream>
 #include "zip_handler.h"
 #include <cstring>
-#include "mz_strm_mem.h"
 #include "crc32.h"
+extern "C" {
+#include "mz_strm_mem.h"
+}
 
 std::string CUnZipHandler::GetFileName(bool *isUTF8) {
 
