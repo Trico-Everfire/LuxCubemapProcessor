@@ -26,6 +26,8 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
     size_t size = ftell( fl );
 
+    std::cout << size << std::endl;
+
     char *fileContents = new char[size];
 
     rewind( fl );
@@ -38,10 +40,14 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
     if(bsp->bspIdentifier != BSPHeaderIdentifier)
         return;
 
+    std::cout << "It's a BSP!" << std::endl;
+
     auto cubeMapLump = bsp->bspLumps[BSPCubeMapLocation];
 
     if(cubeMapLump.contentLength % sizeof(BSPCubeMapSample) != 0)
         return;
+
+    std::cout << "Right size!!" << std::endl;
 
     std::vector<CorrectedCubeMap> cubeMapFiles;
     for(int i = cubeMapLump.contentLength, j = 0; i > 1; i-= sizeof(BSPCubeMapSample), j += sizeof(BSPCubeMapSample))
