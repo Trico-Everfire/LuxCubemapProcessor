@@ -5,6 +5,7 @@
 #include "crc32.h"
 extern "C" {
 #include "mz_strm_mem.h"
+#include "mz_compat.h"
 }
 
 std::string CUnZipHandler::GetFileName(bool *isUTF8) {
