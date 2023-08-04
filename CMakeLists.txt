@@ -22,6 +22,13 @@ set_target_properties(
         RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
 add_subdirectory(libs/minizip-ng)
+
+set_target_properties(
+        minizip PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
+        LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
+
 include_directories(libs/minizip-ng)
 include_directories(libs/VTFLib/VTFLib)
 
