@@ -20,13 +20,19 @@ std::string CUnZipHandler::GetFileName(bool *isUTF8) {
         if ( zfile == nullptr )
             return {};
 
+        std::cout << "File2" << std::endl;
+
         ret = unzGetCurrentFileInfo64( zfile, &finfo, name.data(), MAX_NAMELEN, nullptr, 0, nullptr, 0 );
 
         if ( ret != UNZ_OK )
             return {};
 
+        std::cout << "File3" << std::endl;
+
         if ( isUTF8 != nullptr )
             *isUTF8 = ( finfo.flag & ( 1 << 11 ) ) != 0;
+
+        std::cout << "File" + std::string(name.data()) << std::endl;
 
         return { name.data() };
 
