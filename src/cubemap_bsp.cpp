@@ -115,7 +115,7 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
             vtfFile.ConvertInPlace(IMAGE_FORMAT_RGBA32323232F);
 
-            uint vtfSize = VTFLib::CVTFFile::ComputeImageSize(vtfFile.GetWidth(), vtfFile.GetHeight(), 1, IMAGE_FORMAT_RGBA32323232F);
+            int vtfSize = VTFLib::CVTFFile::ComputeImageSize(vtfFile.GetWidth(), vtfFile.GetHeight(), 1, IMAGE_FORMAT_RGBA32323232F);
             float individual = static_cast<float>(vtfSize) / 4;
 
             for(int i = 0; i < 6; i++)
