@@ -47,14 +47,11 @@ CUnZipHandler::Result CUnZipHandler::Read(std::vector<std::byte> &fileContents) 
         return Result::ZIPPER_RESULT_ERROR;
     }
 
-    auto centralDirectory = current->centralDirectory;
-
     if ( current->contentSize < 1 )
     {
         return Result::ZIPPER_RESULT_ERROR;
     }
 
-//    fileContents.reserve(centralDirectory.uncompressedSize);
     fileContents.assign(current->fileData.begin(), current->fileData.end());
 
     current++;
