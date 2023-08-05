@@ -88,7 +88,7 @@ public:
     void useExistingZipEntries(const CZip&);
 
 public:
-    typedef __gnu_cxx::__normal_iterator<ZipEntryContents *, std::vector<CZip::ZipEntryContents>> EntryIterator;
+    typedef std::vector<ZipEntryContents>::iterator EntryIterator;
 };
 
 class CUnZipHandler : public CZip
