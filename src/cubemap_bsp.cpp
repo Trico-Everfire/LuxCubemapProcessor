@@ -190,6 +190,9 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
     delete zipHandler;
 
+    if(bufSize <= 0)
+        return;
+
     auto newBuffer = new std::byte[(size - ContentLump->contentLength) + bufSize];
     auto initialContentLength = ContentLump->contentLength;
 
