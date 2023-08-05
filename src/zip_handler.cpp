@@ -2,41 +2,22 @@
 #include <iostream>
 #include <cstring>
 #include "crc32.h"
-extern "C" {
-#include "mz_strm_mem.h"
-}
 #include "zip_handler.h"
 
 std::string CUnZipHandler::GetFileName(bool *isUTF8) {
 
-        if ( !isValid )
-            return {};
-        std::array<char, BUF_SIZE> name {};
-        unz_file_info64 finfo;
-        int ret;
+    if ( !isValid )
+        return {};
 
-        std::cout << "File" << std::endl;
+    if ( current == entries.end() )
+        return {};
 
-        if ( zfile == nullptr )
-            return {};
+    auto centralDirectory = current->centralDirectory;
 
-        std::cout << "File2" << std::endl;
+    if ( isUTF8 != nullptr )
+        *isUTF8 = ( centralDirectory.flags & ( 1 << 11 ) ) != 0;
 
-        ret = unzGetCurrentFileInfo64( zfile, &finfo, name.data(), MAX_NAMELEN, nullptr, 0, nullptr, 0 );
-
-        if ( ret != UNZ_OK )
-            return {};
-
-        std::cout << "File3" << std::endl;
-
-        if ( isUTF8 != nullptr )
-            *isUTF8 = ( finfo.flag & ( 1 << 11 ) ) != 0;
-
-        std::cout << "File" + std::string(name.data()) << std::endl;
-
-        return { name.data() };
-
-
+    return { current->fileName };
 }
 
 bool CUnZipHandler::IsDir()
@@ -44,59 +25,41 @@ bool CUnZipHandler::IsDir()
     if ( !isValid )
         return false;
 
-    std::array<char, BUF_SIZE> name {};
-    unz_file_info64 finfo;
-    size_t len;
-    int ret;
+    if ( current == entries.end() )
+        return {};
 
-    if ( zfile == nullptr )
-        return false;
+    auto centralDirectory = current->centralDirectory;
 
-    ret = unzGetCurrentFileInfo64( zfile, &finfo, name.data(), MAX_NAMELEN, nullptr, 0, nullptr, 0 );
-    if ( ret != UNZ_OK )
-        return false;
-
-    len = strlen( name.data() );
-    if ( finfo.uncompressed_size == 0 && len > 0 && name[len - 1] == '/' )
+    auto len = centralDirectory.fileNameLength;
+    if ( centralDirectory.uncompressedSize == 0 && len > 0 && current->fileName.ends_with('/') )
         return true;
 
     return false;
 }
 
 CUnZipHandler::Result CUnZipHandler::Read(std::vector<std::byte> &fileContents) {
+
     if ( !isValid )
         return Result::ZIPPER_RESULT_ERROR;
 
-    if ( zfile == nullptr )
+    if ( current == entries.end() )
     {
         return Result::ZIPPER_RESULT_ERROR;
     }
 
-    int ret = unzOpenCurrentFile( zfile );
-    if ( ret != UNZ_OK )
+    auto centralDirectory = current->centralDirectory;
+
+    if ( centralDirectory.uncompressedSize < 1 )
     {
         return Result::ZIPPER_RESULT_ERROR;
     }
 
-    int red;
+//    fileContents.reserve(centralDirectory.uncompressedSize);
+    fileContents.assign(current->fileData.begin(), current->fileData.end());
 
-    std::vector<std::byte> buffer;
-    buffer.reserve(BUF_SIZE);
-    while ( ( red = unzReadCurrentFile( zfile, buffer.data(), BUF_SIZE ) ) > 0 )
-    {
-        for(int i = 0; i < red; i++)
-        fileContents.push_back(buffer[i]);//.append(  reinterpret_cast<char *>( tbuf.data() ), red  );
-    }
+    current++;
 
-    if ( red < 0 )
-    {
-        unzCloseCurrentFile( zfile );
-        return Result::ZIPPER_RESULT_ERROR;
-    }
-
-    unzCloseCurrentFile( zfile );
-
-    if ( unzGoToNextFile( zfile ) != UNZ_OK )
+    if ( current == entries.end() )
     {
         return Result::ZIPPER_RESULT_SUCCESS_EOF;
     }
@@ -108,7 +71,11 @@ bool CUnZipHandler::SkipFile()
 {
     if ( !isValid )
         return false;
-    return unzGoToNextFile( zfile ) != UNZ_OK;
+
+    if ( current == entries.end() )
+        return false;
+    current++;
+    return true;
 }
 
 uint64_t CUnZipHandler::GetFileSize()
@@ -116,106 +83,23 @@ uint64_t CUnZipHandler::GetFileSize()
     if ( !isValid )
         return -1;
 
-    unz_file_info64 fInfo;
-    int ret;
-
-    if ( zfile == nullptr )
+    if ( current == entries.end() )
         return 0;
 
-    ret = unzGetCurrentFileInfo64( zfile, &fInfo, nullptr, 0, nullptr, 0, nullptr, 0 );
-    if ( ret != UNZ_OK )
-        return 0;
-    return fInfo.uncompressed_size;
+    auto centralDirectory = current->centralDirectory;
+
+    return centralDirectory.uncompressedSize;
 }
 
-CUnZipHandler::CUnZipHandler(std::byte* buff, int32_t size) {
-
-    auto stream = mz_stream_mem_create();
-
-    if (!stream)
-        return;
-
-    mz_stream_mem_set_buffer(stream, buff, size);
-
-    int res = mz_stream_mem_open(stream, NULL, MZ_OPEN_MODE_WRITE);
-
-    if(res != MZ_OK)
-    {
-        std::cout << res;
-        return;
-    }
-
-    this->zfile = unzOpen_MZ(stream);
-
-        this->isValid = true;
-
+CUnZipHandler::CUnZipHandler(std::byte* buff, int32_t size) : CZip(buff, size) {
+    this->current = this->entries.begin();
+    this->isValid = true;
 }
 
 
-CZipHandler::CZipHandler(std::byte* buff, uint32_t size) {
-
+CZipHandler::CZipHandler(std::byte *buff, uint32_t size) : CZip(buff, size)
+{
     CCRC32::generate_table(table);
-
-    std::unordered_map<int, ZipEntryContents> existingEntries;
-
-    for(int i = 0; i < size; i++)
-    {
-        if(*reinterpret_cast<int*>(buff + i) == 0x04034b50)
-        {
-            ZipEntryContents contents{0};
-            auto eocdTest = reinterpret_cast<LocalFileHeader*>(buff + i);
-            memcpy(&contents.localHeader,eocdTest, sizeof(LocalFileHeader));
-            contents.fileName.reserve(eocdTest->fileNameLength );
-            contents.fileName.assign(reinterpret_cast<char*>(buff) + i + sizeof(LocalFileHeader), reinterpret_cast<char*>(buff) + i + sizeof(LocalFileHeader) + eocdTest->fileNameLength);
-            int offsetSize = contents.fileName.length() + (i + sizeof(LocalFileHeader));
-
-            if(eocdTest->extraFieldLength > 0) {
-                contents.localExtraFieldData.reserve(eocdTest->extraFieldLength);
-                contents.localExtraFieldData.assign((std::byte *) buff + offsetSize,
-                                                    (std::byte *) buff + offsetSize + eocdTest->extraFieldLength);
-            }
-            offsetSize += eocdTest->extraFieldLength;
-            contents.fileData.reserve(eocdTest->uncompressedSize);
-            contents.fileData.assign( (std::byte*)buff + offsetSize, (std::byte*)buff + offsetSize + eocdTest->uncompressedSize);
-
-            contents.contentSize = eocdTest->uncompressedSize;
-            existingEntries.insert({i, contents});
-            continue;
-        }
-
-        if(*reinterpret_cast<int*>(buff + i) == 0x02014b50)
-        {
-            auto eocdTest = reinterpret_cast<CentralDirectory*>(buff + i);
-            auto contents = existingEntries[eocdTest->RelativeOffsetLocalFileHeader];//.extract(eocdTest->RelativeOffsetLocalFileHeader);
-
-            memcpy(&contents.centralDirectory,eocdTest, sizeof(CentralDirectory));
-
-            int offsetSize = contents.fileName.length() + (i + sizeof(LocalFileHeader));
-
-            if(eocdTest->extraFieldLength > 0) {
-                contents.centralExtraFieldData.reserve(eocdTest->extraFieldLength);
-                contents.localExtraFieldData.assign((std::byte *) buff + offsetSize,
-                                                    (std::byte *) buff + offsetSize + eocdTest->extraFieldLength);
-            }
-
-            offsetSize += eocdTest->extraFieldLength;
-            if(eocdTest->commentLength > 0) {
-                contents.centralComment.reserve(eocdTest->extraFieldLength);
-                contents.centralComment.assign((char *) buff + offsetSize,
-                                               (char *) buff + offsetSize + eocdTest->extraFieldLength);
-            }
-
-            entries.push_back(contents);
-            continue;
-        }
-        if(*reinterpret_cast<int*>(buff + i) == 0x06054b50) {
-            auto eocdTest = reinterpret_cast<EndOfCentralDirectory *>(buff + i);
-            this->globalComment.reserve( eocdTest->commentLength );
-            this->globalComment.assign(reinterpret_cast<char*>(buff) + i + sizeof(EndOfCentralDirectory), reinterpret_cast<char*>(buff) + i + sizeof(EndOfCentralDirectory) + eocdTest->commentLength);
-            continue;
-        }
-    }
-
     this->isValid = true;
 }
 
@@ -359,4 +243,71 @@ bool CZipHandler::zipper_add_file(const char *filepath, const char *inZipName) {
     delete[] fileContents;
 
     return success;
+}
+
+CZip::CZip(std::byte *buff, uint32_t size)
+{
+    std::unordered_map<int, ZipEntryContents> existingEntries;
+    for(int i = 0; i < size; i++)
+    {
+        if(*reinterpret_cast<int*>(buff + i) == 0x04034b50)
+        {
+            ZipEntryContents contents{0};
+            auto eocdTest = reinterpret_cast<LocalFileHeader*>(buff + i);
+            memcpy(&contents.localHeader,eocdTest, sizeof(LocalFileHeader));
+            contents.fileName.reserve(eocdTest->fileNameLength );
+            contents.fileName.assign(reinterpret_cast<char*>(buff) + i + sizeof(LocalFileHeader), reinterpret_cast<char*>(buff) + i + sizeof(LocalFileHeader) + eocdTest->fileNameLength);
+            int offsetSize = contents.fileName.length() + (i + sizeof(LocalFileHeader));
+
+            if(eocdTest->extraFieldLength > 0) {
+                contents.localExtraFieldData.reserve(eocdTest->extraFieldLength);
+                contents.localExtraFieldData.assign((std::byte *) buff + offsetSize,
+                                                    (std::byte *) buff + offsetSize + eocdTest->extraFieldLength);
+            }
+            offsetSize += eocdTest->extraFieldLength;
+            contents.fileData.reserve(eocdTest->uncompressedSize);
+            contents.fileData.assign( (std::byte*)buff + offsetSize, (std::byte*)buff + offsetSize + eocdTest->uncompressedSize);
+
+            contents.contentSize = eocdTest->uncompressedSize;
+            existingEntries.insert({i, contents});
+            continue;
+        }
+
+        if(*reinterpret_cast<int*>(buff + i) == 0x02014b50)
+        {
+            auto eocdTest = reinterpret_cast<CentralDirectory*>(buff + i);
+            auto contents = existingEntries[eocdTest->RelativeOffsetLocalFileHeader];//.extract(eocdTest->RelativeOffsetLocalFileHeader);
+
+            memcpy(&contents.centralDirectory,eocdTest, sizeof(CentralDirectory));
+
+            int offsetSize = contents.fileName.length() + (i + sizeof(LocalFileHeader));
+
+            if(eocdTest->extraFieldLength > 0) {
+                contents.centralExtraFieldData.reserve(eocdTest->extraFieldLength);
+                contents.localExtraFieldData.assign((std::byte *) buff + offsetSize,
+                                                    (std::byte *) buff + offsetSize + eocdTest->extraFieldLength);
+            }
+
+            offsetSize += eocdTest->extraFieldLength;
+            if(eocdTest->commentLength > 0) {
+                contents.centralComment.reserve(eocdTest->extraFieldLength);
+                contents.centralComment.assign((char *) buff + offsetSize,
+                                               (char *) buff + offsetSize + eocdTest->extraFieldLength);
+            }
+
+            entries.push_back(contents);
+            continue;
+        }
+        if(*reinterpret_cast<int*>(buff + i) == 0x06054b50) {
+            auto eocdTest = reinterpret_cast<EndOfCentralDirectory *>(buff + i);
+            this->globalComment.reserve( eocdTest->commentLength );
+            this->globalComment.assign(reinterpret_cast<char*>(buff) + i + sizeof(EndOfCentralDirectory), reinterpret_cast<char*>(buff) + i + sizeof(EndOfCentralDirectory) + eocdTest->commentLength);
+            continue;
+        }
+    }
+}
+
+void CZip::useExistingZipEntries(const CZip & oldZip) {
+        entries.reserve(oldZip.entries.size());
+        entries.assign(oldZip.entries.begin(), oldZip.entries.end());
 }

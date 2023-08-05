@@ -29,15 +29,6 @@ set_target_properties(
         LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
         RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
-add_subdirectory(libs/minizip-ng)
-
-set_target_properties(
-        minizip PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
-        LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
-
-include_directories(libs/minizip-ng)
 include_directories(libs/VTFLib/VTFLib)
 
 set(SRC src/main.cpp src/cubemap_bsp.cpp src/cubemap_bsp.h src/zip_handler.cpp src/zip_handler.h src/crc32.h)
@@ -45,4 +36,4 @@ set(SRC src/main.cpp src/cubemap_bsp.cpp src/cubemap_bsp.h src/zip_handler.cpp s
 
 add_executable(${PROJECT_NAME} ${SRC})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE vtflib minizip)
+target_link_libraries(${PROJECT_NAME} PRIVATE vtflib)

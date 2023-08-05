@@ -26,8 +26,6 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
     size_t size = ftell( fl );
 
-    std::cout << size << std::endl;
-
     char *fileContents = new char[size];
 
     rewind( fl );
@@ -40,14 +38,10 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
     if(bsp->bspIdentifier != BSPHeaderIdentifier)
         return;
 
-    std::cout << "It's a BSP!" << std::endl;
-
     auto cubeMapLump = bsp->bspLumps[BSPCubeMapLocation];
 
     if(cubeMapLump.contentLength % sizeof(BSPCubeMapSample) != 0)
         return;
-
-    std::cout << "Right size!!" << std::endl;
 
     std::vector<CorrectedCubeMap> cubeMapFiles;
     for(int i = cubeMapLump.contentLength, j = 0; i > 1; i-= sizeof(BSPCubeMapSample), j += sizeof(BSPCubeMapSample))
@@ -82,8 +76,6 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
     if ( !unZipHandler->IsValid() )
         return;
 
-    std::cout << "It's unzipping valid!!!" << std::endl;
-
     CUnZipHandler::Result zipper_ret;
     do
     {
@@ -91,8 +83,6 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         std::string zfilename = unZipHandler->GetFileName(nullptr );
         if ( zfilename.empty() )
             return;
-
-        std::cout << zfilename << std::endl;
 
         std::istringstream fname(zfilename);
         std::string result;
@@ -118,28 +108,32 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         {
             auto vtfFile = VTFLib::CVTFFile();
 
-            std::cout << buf.size() << std::endl;
 
-            vtfFile.Load(buf.data(), buf.size(), false);
+
+            if(!vtfFile.Load(buf.data(), buf.size(), false))
+                return;
+
+            vtfFile.ConvertInPlace(IMAGE_FORMAT_RGBA32323232F);
+
+            uint vtfSize = VTFLib::CVTFFile::ComputeImageSize(vtfFile.GetWidth(), vtfFile.GetHeight(), 1, IMAGE_FORMAT_RGBA32323232F);
+            float individual = static_cast<float>(vtfSize) / 4;
 
             for(int i = 0; i < 6; i++)
             {
-                vtfFile.ConvertInPlace(IMAGE_FORMAT_RGBA32323232F);
-                int vtfSize = VTFLib::CVTFFile::ComputeImageSize(vtfFile.GetWidth(), vtfFile.GetHeight(), 1, IMAGE_FORMAT_RGBA32323232F);
+                auto imageData = reinterpret_cast<float*>(vtfFile.GetData(0, i, 0, 0));
+
                 float red = 0;
                 float green = 0;
                 float blue = 0;
-                auto imageData = reinterpret_cast<float*>(vtfFile.GetData(0, i, 0, 0));
-                for(int j = 0; j < vtfSize; j += 4)
-                {
+                for (int j = 0; j < vtfSize / 4; j += 4) {
                     red += imageData[j];
                     green += imageData[j + 1];
                     blue += imageData[j + 2];
                 }
-                float individual = static_cast<float>(vtfSize) / 4;
-                cubeMap->cubeMapValues[i].x = red / individual;
-                cubeMap->cubeMapValues[i].y = green / individual;
-                cubeMap->cubeMapValues[i].z = blue / individual;
+                cubeMap->cubeMapValues[i].x = (red) / individual;
+                cubeMap->cubeMapValues[i].y = (green) / individual;
+                cubeMap->cubeMapValues[i].z = (blue) / individual;
+
             }
 
             for(const auto& path : filePath)
@@ -149,9 +143,13 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
     } while (zipper_ret == CUnZipHandler::Result::ZIPPER_RESULT_SUCCESS );
 
+    auto zipHandler = new CZipHandler(
+            nullptr, 0);
+
+    zipHandler->useExistingZipEntries(*unZipHandler);
+
     delete unZipHandler;
 
-    auto zipHandler = new CZipHandler(reinterpret_cast<std::byte *>(fileContents + ContentLump->contentOffset), ContentLump->contentLength);
 
     if(!zipHandler->IsValid())
         return;
@@ -169,7 +167,6 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         vmt.push_back('}');
         cubeMaps.vmf = vmt;
 
-        std::cout << cubeMaps.vmtName << std::endl;
 
         if(!zipHandler->zipper_add_buf((cubeMaps.path + cubeMaps.vmtName).c_str(),
                                        reinterpret_cast<const unsigned char *>(cubeMaps.vmf.data()), cubeMaps.vmf.size()))
@@ -195,13 +192,9 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
     delete[] buff;
 
-    std::cout << "before FOpen" << std::endl;
-
     fl = fopen(bspPath.c_str(), "w");
     if(fl == nullptr)
         return;
-
-    std::cout << "After" << std::endl;
 
     fwrite(newBuffer, 1, (size - initialContentLength) + bufSize, fl );
 
