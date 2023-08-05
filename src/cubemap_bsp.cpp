@@ -104,9 +104,6 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         std::vector<std::byte> buf;
         zipper_ret = unZipHandler->Read(buf );
 
-        std::cout << "file size: ";
-        std::cout << buf.size() << std::endl;;
-
         auto cubeMap = std::find_if(cubeMapFiles.begin(), cubeMapFiles.end(), [&result](CorrectedCubeMap& cubemap){ return cubemap.vtfName == result;});
         if(cubeMap != cubeMapFiles.end())
         {
@@ -146,6 +143,9 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
 
     } while (zipper_ret == CUnZipHandler::Result::ZIPPER_RESULT_SUCCESS );
+
+    if(zipper_ret != CUnZipHandler::Result::ZIPPER_RESULT_SUCCESS_EOF)
+        return;
 
     auto zipHandler = new CZipHandler(
             nullptr, 0);
