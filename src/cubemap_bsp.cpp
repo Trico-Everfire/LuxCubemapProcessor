@@ -56,7 +56,7 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
         auto cubeMapVMTName = std::string(cubeMapFileName);
 
-        cubeMapVMTName.append(".vmt");
+        cubeMapVMTName.append(".hdr.vmt");
 
         cubeMapFileName.append(".hdr.vtf");
 
