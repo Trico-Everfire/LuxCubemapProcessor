@@ -18,7 +18,7 @@ double GetFloatPrecision(double value, double precision)
 
 CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 {
-    FILE* fl = fopen(bspPath.c_str(), "r");
+    FILE* fl = fopen(bspPath.c_str(), "rb");
     if(fl == nullptr)
         return;
 
@@ -84,8 +84,6 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         if ( zfilename.empty() )
             return;
 
-        std::cout << zfilename << std::endl;
-
         std::istringstream fname(zfilename);
         std::string result;
         std::vector<std::string> filePath;
@@ -103,8 +101,6 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
         std::vector<std::byte> buf;
         zipper_ret = unZipHandler->Read(buf );
-
-        std::cout << buf.size() << std::endl;
 
         if(zipper_ret == CUnZipHandler::Result::ZIPPER_RESULT_ERROR)
             return;
@@ -204,7 +200,7 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
     delete[] buff;
 
-    fl = fopen(bspPath.c_str(), "w");
+    fl = fopen(bspPath.c_str(), "wb");
     if(fl == nullptr)
         return;
 

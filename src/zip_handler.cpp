@@ -216,9 +216,6 @@ void CZipHandler::GetZipFile(std::byte **buff, int *size)
         memcpy(currentBuffer + offset + sizeof(EndOfCentralDirectory), this->globalComment.c_str(), this->globalComment.length());
     }
 
-    std::cout << "Total size: ";
-    std::cout << totalSize << std::endl;
-
     *size = totalSize;
 
 }
