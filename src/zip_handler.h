@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include <unordered_map>
+#include <map>
 
 class CZip
 {
@@ -56,8 +56,6 @@ protected:
         std::vector<std::byte> localExtraFieldData;
         std::vector<std::byte> centralExtraFieldData;
         std::string centralComment;
-//    short extraFieldLength = 0;
-//    short commentLength;
     };
 
     struct EndOfCentralDirectory
@@ -77,7 +75,7 @@ protected:
 
     CZip(std::byte* buff, uint32_t size);
 
-    std::vector<ZipEntryContents> entries;
+    std::map<std::string, ZipEntryContents> entries;
 
     bool isValid = true;
 
@@ -88,15 +86,12 @@ public:
     void useExistingZipEntries(const CZip&);
 
 public:
-    typedef std::vector<ZipEntryContents>::iterator EntryIterator;
+    typedef std::map<std::string, ZipEntryContents>::iterator EntryIterator;
+    static constexpr int MAX_ENTRIES = 65535;
 };
 
 class CUnZipHandler : public CZip
 {
-
-private:
-    static constexpr int BUF_SIZE = 8192;
-    static constexpr int MAX_NAMELEN = 256;
 
     EntryIterator current;
 
@@ -137,15 +132,15 @@ uint32_t table[256];
 public:
     CZipHandler(std::byte *buff, uint32_t size);
 
-    ~CZipHandler()
-    {
-    }
+    ~CZipHandler() = default;
+
     bool IsValid(){
         return isValid;
     }
 
-    bool zipper_add_file(const char *filepath, const char *inZipName);
-    bool zipper_add_buf(const char *zfilename, const unsigned char *buf, size_t buflen);
+    bool RemoveFileFromZip(const char *filepath);
+    bool AddFileToZip(const char *filepath, const char *inZipName);
+    bool AddBufferedFileToZip(const char *zfilename, const unsigned char *buf, size_t buflen);
 
     void GetZipFile(std::byte **buff, int *size);
 };

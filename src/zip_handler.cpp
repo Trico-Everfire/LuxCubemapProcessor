@@ -1,6 +1,7 @@
 #include <array>
 #include <iostream>
 #include <cstring>
+#include <unordered_map>
 #include "crc32.h"
 #include "zip_handler.h"
 
@@ -12,12 +13,12 @@ std::string CUnZipHandler::GetFileName(bool *isUTF8) {
     if ( current == entries.end() )
         return {};
 
-    auto centralDirectory = current->centralDirectory;
+    auto centralDirectory = current->second.centralDirectory;
 
     if ( isUTF8 != nullptr )
         *isUTF8 = ( centralDirectory.flags & ( 1 << 11 ) ) != 0;
 
-    return { current->fileName };
+    return { current->second.fileName };
 }
 
 bool CUnZipHandler::IsDir()
@@ -28,10 +29,10 @@ bool CUnZipHandler::IsDir()
     if ( current == entries.end() )
         return {};
 
-    auto centralDirectory = current->centralDirectory;
+    auto centralDirectory = current->second.centralDirectory;
 
     auto len = centralDirectory.fileNameLength;
-    if ( centralDirectory.uncompressedSize == 0 && len > 0 && current->fileName.ends_with('/') )
+    if ( centralDirectory.uncompressedSize == 0 && len > 0 && current->second.fileName.ends_with('/') )
         return true;
 
     return false;
@@ -47,12 +48,12 @@ CUnZipHandler::Result CUnZipHandler::Read(std::vector<std::byte> &fileContents) 
         return Result::ZIPPER_RESULT_ERROR;
     }
 
-    if ( current->contentSize < 1 )
+    if ( current->second.contentSize < 1 )
     {
         return Result::ZIPPER_RESULT_ERROR;
     }
 
-    fileContents.assign(current->fileData.begin(), current->fileData.end());
+    fileContents.assign(current->second.fileData.begin(), current->second.fileData.end());
 
     current++;
 
@@ -83,7 +84,7 @@ uint64_t CUnZipHandler::GetFileSize()
     if ( current == entries.end() )
         return 0;
 
-    auto centralDirectory = current->centralDirectory;
+    auto centralDirectory = current->second.centralDirectory;
 
     return centralDirectory.uncompressedSize;
 }
@@ -100,8 +101,11 @@ CZipHandler::CZipHandler(std::byte *buff, uint32_t size) : CZip(buff, size)
     this->isValid = true;
 }
 
-bool CZipHandler::zipper_add_buf(const char *zfilename, const unsigned char *buf, size_t buflen)
+bool CZipHandler::AddBufferedFileToZip(const char *zfilename, const unsigned char *buf, size_t buflen)
 {
+    if(entries.size() + 1 >= MAX_ENTRIES)
+        return false;
+
     ZipEntryContents entry;
 
     //local header
@@ -139,7 +143,7 @@ bool CZipHandler::zipper_add_buf(const char *zfilename, const unsigned char *buf
     entry.fileName = zfilename;
 
     //push to entries.
-    entries.push_back(entry);
+    entries.insert({zfilename,entry});
 
     return true;
 
@@ -149,9 +153,9 @@ void CZipHandler::GetZipFile(std::byte **buff, int *size)
 {
     uint32_t totalSize = 0;
     uint32_t extraFilenameCountUp = 0;
-    for(auto& entry : entries) {
-        totalSize += entry.fileData.size() + (entry.centralDirectory.fileNameLength) + entry.centralDirectory.commentLength + entry.centralDirectory.extraFieldLength;
-        extraFilenameCountUp += (entry.centralDirectory.fileNameLength);
+    for(const auto& entry : entries) {
+        totalSize += entry.second.fileData.size() + (entry.second.centralDirectory.fileNameLength) + entry.second.centralDirectory.commentLength + entry.second.centralDirectory.extraFieldLength;
+        extraFilenameCountUp += (entry.second.centralDirectory.fileNameLength);
     }
     totalSize += ((sizeof(CentralDirectory) + sizeof(LocalFileHeader)) * entries.size()) + sizeof(EndOfCentralDirectory);
     totalSize += extraFilenameCountUp + this->globalComment.length();
@@ -161,21 +165,18 @@ void CZipHandler::GetZipFile(std::byte **buff, int *size)
     int offset = 0;
     for(auto &entry : entries)
     {
-        entry.centralDirectory.RelativeOffsetLocalFileHeader = offset;
-        memcpy(currentBuffer + offset, &entry.localHeader, sizeof(LocalFileHeader));
+        (&(&(&entry)->second)->centralDirectory)->RelativeOffsetLocalFileHeader = offset;
+        memcpy(currentBuffer + offset, &entry.second.localHeader, sizeof(LocalFileHeader));
         offset += sizeof(LocalFileHeader);
-        memcpy(currentBuffer + offset, entry.fileName.c_str(), strlen(entry.fileName.c_str()));
-        offset += strlen(entry.fileName.c_str());
-        if(entry.localHeader.extraFieldLength > 0)
+        memcpy(currentBuffer + offset, entry.second.fileName.c_str(), strlen(entry.second.fileName.c_str()));
+        offset += strlen(entry.second.fileName.c_str());
+        if(entry.second.localHeader.extraFieldLength > 0)
         {
-            memcpy(currentBuffer + offset, entry.localExtraFieldData.data(), entry.localHeader.extraFieldLength);
-            offset+=entry.localHeader.extraFieldLength;
+            memcpy(currentBuffer + offset, entry.second.localExtraFieldData.data(), entry.second.localHeader.extraFieldLength);
+            offset+=entry.second.localHeader.extraFieldLength;
         }
-        memcpy(currentBuffer + offset, entry.fileData.data(),entry.fileData.size());
-        offset += entry.fileData.size();
-
-
-
+        memcpy(currentBuffer + offset, entry.second.fileData.data(),entry.second.fileData.size());
+        offset += entry.second.fileData.size();
     }
 
     uint32_t startOfCD = offset;
@@ -183,21 +184,21 @@ void CZipHandler::GetZipFile(std::byte **buff, int *size)
 
     for(auto entry : entries)
     {
-        memcpy(currentBuffer + offset, &entry.centralDirectory, sizeof(CentralDirectory));
+        memcpy(currentBuffer + offset, &entry.second.centralDirectory, sizeof(CentralDirectory));
         offset += sizeof(CentralDirectory);
         centralDirectorySize += sizeof(CentralDirectory);
-        memcpy(currentBuffer + offset, entry.fileName.c_str(), entry.fileName.length());
-        offset += entry.fileName.length();
-        centralDirectorySize += entry.fileName.length();
-        if(entry.centralDirectory.extraFieldLength > 0)
+        memcpy(currentBuffer + offset, entry.second.fileName.c_str(), entry.second.fileName.length());
+        offset += entry.second.fileName.length();
+        centralDirectorySize += entry.second.fileName.length();
+        if(entry.second.centralDirectory.extraFieldLength > 0)
         {
-            memcpy(currentBuffer + offset, entry.centralExtraFieldData.data(), entry.centralDirectory.extraFieldLength);
-            offset+=entry.centralDirectory.extraFieldLength;
+            memcpy(currentBuffer + offset, entry.second.centralExtraFieldData.data(), entry.second.centralDirectory.extraFieldLength);
+            offset+=entry.second.centralDirectory.extraFieldLength;
         }
-        if(entry.centralDirectory.commentLength > 0)
+        if(entry.second.centralDirectory.commentLength > 0)
         {
-            memcpy(currentBuffer + offset, entry.centralComment.data(), entry.centralComment.length());
-            offset+=entry.centralComment.length();
+            memcpy(currentBuffer + offset, entry.second.centralComment.data(), entry.second.centralComment.length());
+            offset+=entry.second.centralComment.length();
         }
     }
 
@@ -220,7 +221,7 @@ void CZipHandler::GetZipFile(std::byte **buff, int *size)
 
 }
 
-bool CZipHandler::zipper_add_file(const char *filepath, const char *inZipName) {
+bool CZipHandler::AddFileToZip(const char *filepath, const char *inZipName) {
 
     FILE* fl = fopen(filepath, "r");
     if(fl == nullptr)
@@ -235,11 +236,15 @@ bool CZipHandler::zipper_add_file(const char *filepath, const char *inZipName) {
 
     fclose( fl );
 
-    bool success = zipper_add_buf(inZipName ? inZipName : filepath, fileContents, size);;
+    bool success = AddBufferedFileToZip(inZipName ? inZipName : filepath, fileContents, size);;
 
     delete[] fileContents;
 
     return success;
+}
+
+bool CZipHandler::RemoveFileFromZip(const char *filepath) {
+    return entries.erase(filepath) != 0;
 }
 
 CZip::CZip(std::byte *buff, uint32_t size)
@@ -292,7 +297,7 @@ CZip::CZip(std::byte *buff, uint32_t size)
                                                (char *) buff + offsetSize + eocdTest->extraFieldLength);
             }
 
-            entries.push_back(contents);
+            entries.insert({contents.fileName,contents});
             continue;
         }
         if(*reinterpret_cast<int*>(buff + i) == 0x06054b50) {
@@ -305,6 +310,5 @@ CZip::CZip(std::byte *buff, uint32_t size)
 }
 
 void CZip::useExistingZipEntries(const CZip & oldZip) {
-        entries.reserve(oldZip.entries.size());
-        entries.assign(oldZip.entries.begin(), oldZip.entries.end());
+        entries.insert(oldZip.entries.begin(), oldZip.entries.end());
 }

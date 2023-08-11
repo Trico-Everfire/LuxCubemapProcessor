@@ -56,7 +56,7 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
         auto cubeMapVMTName = std::string(cubeMapFileName);
 
-        cubeMapVMTName.append(".hdr.vmt");
+        cubeMapVMTName.append(".vmt");
 
         cubeMapFileName.append(".hdr.vtf");
 
@@ -132,9 +132,9 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
                     green += imageData[j + 1];
                     blue += imageData[j + 2];
                 }
-                cubeMap->cubeMapValues[i].x = (red) / individual;
-                cubeMap->cubeMapValues[i].y = (green) / individual;
-                cubeMap->cubeMapValues[i].z = (blue) / individual;
+                cubeMap->cubeMapValues[i].x = (red * 0.203044f) / individual;
+                cubeMap->cubeMapValues[i].y = (green * 0.203044f) / individual;
+                cubeMap->cubeMapValues[i].z = (blue * 0.203044f) / individual;
 
             }
 
@@ -173,8 +173,9 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         cubeMaps.vmf = vmt;
 
 
-        if(!zipHandler->zipper_add_buf((cubeMaps.path + cubeMaps.vmtName).c_str(),
-                                       reinterpret_cast<const unsigned char *>(cubeMaps.vmf.data()), cubeMaps.vmf.size()))
+        if(!zipHandler->AddBufferedFileToZip((cubeMaps.path + cubeMaps.vmtName).c_str(),
+                                             reinterpret_cast<const unsigned char *>(cubeMaps.vmf.data()),
+                                             cubeMaps.vmf.size()))
             return;
 
     }
