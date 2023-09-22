@@ -16,6 +16,11 @@ double GetFloatPrecision(double value, double precision)
     return (floor((value * pow(10, precision) + 0.5)) / pow(10, precision));
 }
 
+float Remap (float value, float from1, float to1, float from2, float to2) {
+    return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
+}
+
+
 CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 {
     FILE* fl = fopen(bspPath.c_str(), "rb");
@@ -117,8 +122,8 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
             vtfFile.ConvertInPlace(IMAGE_FORMAT_RGBA32323232F);
 
-            int vtfSize = VTFLib::CVTFFile::ComputeImageSize(vtfFile.GetWidth(), vtfFile.GetHeight(), 1, IMAGE_FORMAT_RGBA32323232F);
-            float individual = static_cast<float>(vtfSize) / 4;
+            uint32_t vtfSize = VTFLib::CVTFFile::ComputeImageSize(vtfFile.GetWidth(), vtfFile.GetHeight(), 1, IMAGE_FORMAT_RGBA32323232F);
+            float individual = (vtfFile.GetWidth() * vtfFile.GetHeight());
 
             for(int i = 0; i < 6; i++)
             {
@@ -127,14 +132,16 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
                 float red = 0;
                 float green = 0;
                 float blue = 0;
+
                 for (int j = 0; j < vtfSize / 4; j += 4) {
-                    red += imageData[j];
-                    green += imageData[j + 1];
-                    blue += imageData[j + 2];
+                    red += Remap(imageData[j], 0, 20.0f, 0, 1);
+                    green += Remap(imageData[j + 1], 0, 20.0f, 0, 1);
+                    blue += Remap(imageData[j + 2], 0, 20.0f, 0, 1);
                 }
-                cubeMap->cubeMapValues[i].x = (red * 0.203044f) / individual;
-                cubeMap->cubeMapValues[i].y = (green * 0.203044f) / individual;
-                cubeMap->cubeMapValues[i].z = (blue * 0.203044f) / individual;
+
+                cubeMap->cubeMapValues[i].x = ((red) / individual);
+                cubeMap->cubeMapValues[i].y = ((green) / individual);
+                cubeMap->cubeMapValues[i].z = ((blue) / individual);
 
             }
 
