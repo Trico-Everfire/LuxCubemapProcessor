@@ -4,14 +4,10 @@
 #include <algorithm>
 #include <iostream>
 #include "cubemap_bsp.h"
-#include "zip_handler.h"
-#include "VTFFile.h"
-
-#ifdef _WIN32
-#include "Windows.h"
-#endif
-
 #include "KeyValue.h"
+#include "zip_handler.h"
+
+#include "VTFFile.h"
 
 #define BSPHeaderIdentifier	(('P'<<24)+('S'<<16)+('B'<<8)+'V')
 #define BSPPakFileLocation 40
