@@ -245,11 +245,18 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
     if(result != entityList.end()) {
         for(int i = 0; i < result[0]->Get("entity").ChildCount(); i++)
         {
+
+            bool isVector = strcmp(result[0]->Get("entity")[i].Key().string, "angles") == 0
+                    || strcmp(result[0]->Get("entity")[i].Key().string, "_light") == 0
+                    || strcmp(result[0]->Get("entity")[i].Key().string, "_lightHDR") == 0
+                    || strcmp(result[0]->Get("entity")[i].Key().string, "_ambient") == 0
+                    || strcmp(result[0]->Get("entity")[i].Key().string, "_ambientHDR") == 0;
+
             vmt.append("$");
             vmt.append(result[0]->Get("entity")[i].Key().string);
-            vmt.append("    ");
+            isVector ? vmt.append("    \"[") : vmt.append("    \"");
             vmt.append(result[0]->Get("entity")[i].Value().string);
-            vmt.append("\n");
+            isVector ? vmt.append("]\"\n") : vmt.append("\"\n");
         }
     }
 
@@ -269,9 +276,9 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         {
             vmt2.append("$");
             vmt2.append((*iter)->Get("entity")[i].Key().string);
-            vmt2.append("    ");
+            vmt2.append("    \"");
             vmt2.append((*iter)->Get("entity")[i].Value().string);
-            vmt2.append("\n");
+            vmt2.append("\"\n");
         }
         vmt2.append( "\n}");
 
