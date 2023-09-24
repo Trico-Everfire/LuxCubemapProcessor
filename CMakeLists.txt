@@ -21,6 +21,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(libs/VTFLib)
 
+add_subdirectory(libs/speedykeyv)
+
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 set_target_properties(
@@ -36,4 +38,4 @@ set(SRC src/main.cpp src/cubemap_bsp.cpp src/cubemap_bsp.h src/zip_handler.cpp s
 
 add_executable(${PROJECT_NAME} ${SRC})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE vtflib)
+target_link_libraries(${PROJECT_NAME} PRIVATE vtflib keyvalues)

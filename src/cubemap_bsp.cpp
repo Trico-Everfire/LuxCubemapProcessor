@@ -6,10 +6,12 @@
 #include "cubemap_bsp.h"
 #include "zip_handler.h"
 #include "VTFFile.h"
+#include "KeyValue.h"
 
 #define BSPHeaderIdentifier	(('P'<<24)+('S'<<16)+('B'<<8)+'V')
 #define BSPPakFileLocation 40
 #define BSPCubeMapLocation 42
+#define BSPEntityLocation 0
 
 double GetFloatPrecision(double value, double precision)
 {
@@ -20,6 +22,37 @@ float Remap (float value, float from1, float to1, float from2, float to2) {
     return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
 }
 
+bool parseBSPEntitiesToStringList( const std::string &rawEntityLump, std::vector<KeyValueRoot*> &entityList )
+{
+    std::string entityStringStack;
+    bool inQuotes = false;
+    int nestCount = 0;
+    for ( char character : rawEntityLump )
+    {
+        entityStringStack += character;
+        if ( character == '"' )
+        {
+            inQuotes = !inQuotes;
+            continue;
+        }
+        if ( !inQuotes && character == '{' )
+            nestCount++;
+        if ( !inQuotes && character == '}' )
+            nestCount--;
+        if ( nestCount < 0 )
+            return false;
+
+        if ( nestCount == 0 && character == '}' )
+        {
+            std::string parsedEntity = ( ( R"("entity" )" + entityStringStack ) );
+
+            auto kv = new KeyValueRoot(parsedEntity.c_str());
+            entityList.push_back( kv );
+            entityStringStack = "";
+        }
+    }
+    return true;
+}
 
 CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 {
@@ -168,7 +201,7 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
 
     for(auto &cubeMaps : cubeMapFiles)
     {
-        std::string vmt{"ENVMAPDATA\n{\n"};
+        std::string vmt{"ACROHS_DATA\n{\n"};
 
         for(int i = 0; i < 6; i++)
         {
@@ -185,6 +218,63 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
                                              cubeMaps.vmf.size()))
             return;
 
+    }
+
+    std::string vmt{R"("ACROHS_DATA"
+    {
+      // This VMT is used to determine whether or not our custom data is present.
+      // Each cubemap has its own vmt in which we store the ambient color sampled from that cubemap
+      // Without this file, the PBR Shader will fall back to regular ambient cube
+
+)"};
+
+
+    auto entityLump = &bsp->bspLumps[BSPEntityLocation];
+
+    std::string rawEntityData {fileContents + entityLump->contentOffset, static_cast<size_t>(entityLump->contentLength)};
+
+    std::vector<KeyValueRoot*> entityList;
+
+    parseBSPEntitiesToStringList(rawEntityData, entityList);
+
+    auto result = std::find_if(entityList.begin(), entityList.end(), [](KeyValueRoot* entity){
+        return strcmp(entity->Get("entity").Get("classname").Value().string, "light_environment") == 0;
+    });
+
+    vmt.append(result[0]->Get("entity").ToString());
+    vmt.push_back('}');
+
+    zipHandler->AddBufferedFileToZip("materials/ACROHS_DATA.vmt", reinterpret_cast<const unsigned char *>(vmt.data()), vmt.size());
+
+    auto iter = entityList.begin();
+    while((iter = std::find_if(entityList.begin(), entityList.end(), [](KeyValueRoot* entity){
+        return strcmp(entity->Get("entity").Get("classname").Value().string, "lux_data") == 0;
+    })) != entityList.end())
+    {
+        std::string vmt2(R"(ACROHS_DATA)" );
+        vmt2.append("{\n");
+        vmt2.append((*iter)->ToString());
+        vmt2.append( "\n}");
+
+        zipHandler->AddBufferedFileToZip("materials/lux_data.vmt", reinterpret_cast<const unsigned char *>(vmt2.data()), vmt2.size());
+
+        auto currentIterator = iter;
+        iter++;
+        entityList.erase(currentIterator);
+    }
+
+    std::string newEntityList;
+    for(auto entity : entityList)
+    {
+        newEntityList.append("{\n");
+        newEntityList.append(entity->Get("entity").ToString());
+        newEntityList.append("}\n");
+    }
+
+    if(newEntityList.size() <= entityLump->contentLength + 1){
+        memset(fileContents + entityLump->contentOffset, '\0', entityLump->contentLength);
+        memcpy(fileContents + entityLump->contentOffset, newEntityList.c_str(), newEntityList.size());
+        entityLump->contentLength = newEntityList.size();
     }
 
     int bufSize = 0;

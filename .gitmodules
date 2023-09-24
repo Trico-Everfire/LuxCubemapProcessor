@@ -2,3 +2,6 @@
 	path = libs/VTFLib
 	url = https://github.com/Trico-Everfire/VTFLib.git
 	branch = feat/floating_point_support
+[submodule "libs/speedykeyv"]
+	path = libs/speedykeyv
+	url = https://github.com/ozxybox/SpeedyKeyV.git

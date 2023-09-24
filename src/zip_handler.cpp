@@ -143,6 +143,7 @@ bool CZipHandler::AddBufferedFileToZip(const char *zfilename, const unsigned cha
     entry.fileName = zfilename;
 
     //push to entries.
+    entries.erase(zfilename);
     entries.insert({zfilename,entry});
 
     return true;
