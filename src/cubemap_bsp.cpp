@@ -242,7 +242,17 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
         return strcmp(entity->Get("entity").Get("classname").Value().string, "light_environment") == 0;
     });
 
-    vmt.append(result[0]->Get("entity").ToString());
+    if(result != entityList.end()) {
+        for(int i = 0; i < result[0]->Get("entity").ChildCount(); i++)
+        {
+            vmt.append("$");
+            vmt.append(result[0]->Get("entity")[i].Key().string);
+            vmt.append("    ");
+            vmt.append(result[0]->Get("entity")[i].Value().string);
+            vmt.append("\n");
+        }
+    }
+
     vmt.push_back('}');
 
     zipHandler->AddBufferedFileToZip("materials/ACROHS_DATA.vmt", reinterpret_cast<const unsigned char *>(vmt.data()), vmt.size());
@@ -253,8 +263,16 @@ CCubeMapBSP::CCubeMapBSP(const std::string& bspPath)
     })) != entityList.end())
     {
         std::string vmt2(R"(ACROHS_DATA)" );
-        vmt2.append("{\n");
-        vmt2.append((*iter)->ToString());
+        vmt2.append("\n{\n");
+
+        for(int i = 0; i < (*iter)->Get("entity").ChildCount(); i++)
+        {
+            vmt2.append("$");
+            vmt2.append((*iter)->Get("entity")[i].Key().string);
+            vmt2.append("    ");
+            vmt2.append((*iter)->Get("entity")[i].Value().string);
+            vmt2.append("\n");
+        }
         vmt2.append( "\n}");
 
         zipHandler->AddBufferedFileToZip("materials/lux_data.vmt", reinterpret_cast<const unsigned char *>(vmt2.data()), vmt2.size());
